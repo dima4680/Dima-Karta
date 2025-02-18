@@ -213,20 +213,55 @@
             }
         });
 
-        // Обработчик кнопки "Поделиться данными"
-        document.getElementById('shareDataBtn').addEventListener('click', () => {
-            const data = localStorage.getItem('mapData');
-            if (data) {
-                const encodedData = encodeData(data);
-                const shareUrl = `${window.location.origin}${window.location.pathname}?data=${encodedData}`;
-                alert(`Ссылка для分享 данных: ${shareUrl}`);
-                // Автоматическое копирование в буфер обмена
-                navigator.clipboard.writeText(shareUrl)
-                    .then(() => alert('Ссылка скопирована в буфер обмена!'))
-                    .catch(() => alert('Не удалось скопировать ссылку.'));
-            } else {
-                alert('Нет данных для分享.');
-            }
+       // Обработчик кнопки "Поделиться данными"
+document.getElementById('shareDataBtn').addEventListener('click', () => {
+    const data = localStorage.getItem('mapData');
+    if (data) {
+        const encodedData = encodeData(data);
+        const shareUrl = `${window.location.origin}${window.location.pathname}?data=${encodedData}`;
+
+        // Показываем ссылку в alert
+        alert(`Ссылка для分享 данных: ${shareUrl}`);
+
+        // Копирование в буфер обмена
+        if (navigator.clipboard) {
+            // Используем Clipboard API, если доступен
+            navigator.clipboard.writeText(shareUrl)
+                .then(() => alert('Ссылка скопирована в буфер обмена!'))
+                .catch(() => {
+                    // Fallback, если Clipboard API недоступен
+                    copyToClipboardFallback(shareUrl);
+                });
+        } else {
+            // Используем fallback, если Clipboard API недоступен
+            copyToClipboardFallback(shareUrl);
+        }
+    } else {
+        alert('Нет данных для分享.');
+    }
+});
+
+// Fallback для копирования в буфер обмена
+function copyToClipboardFallback(text) {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed'; // Убираем из DOM
+    document.body.appendChild(textarea);
+    textarea.select();
+
+    try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+            alert('Ссылка скопирована в буфер обмена!');
+        } else {
+            alert('Не удалось скопировать ссылку. Скопируйте её вручную.');
+        }
+    } catch (err) {
+        alert('Не удалось скопировать ссылку. Скопируйте её вручную.');
+    } finally {
+        document.body.removeChild(textarea);
+    }
+}
         });
 
         // Загрузка данных из URL, если они есть
