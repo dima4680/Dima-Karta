@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Карта загруженности вагонов</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
     <style>
         #map {
             height: 800px;
@@ -23,22 +25,37 @@
             font-family: Arial;
             box-shadow: 0 2px 5px rgba(0,0,0,0.3);
         }
+        .auth-section {
+            margin-bottom: 20px;
+        }
+        .hidden {
+            display: none;
+        }
     </style>
 </head>
 <body>
-    <h1>Загрузите файл с данными станций (.xlsx)</h1>
-    <input type="file" id="excelFile" accept=".xlsx, .xls">
+    <div class="auth-section">
+        <input type="text" id="username" placeholder="Логин">
+        <input type="password" id="password" placeholder="Пароль">
+        <button id="loginBtn">Войти</button>
+        <button id="logoutBtn" class="hidden">Выйти</button>
+    </div>
+    <h1>Карта загруженности вагонов</h1>
+    <input type="file" id="excelFile" accept=".xlsx, .xls" class="hidden">
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script>
         // Инициализация карты
         const map = L.map('map').setView([56.0184, 92.8672], 5);
-        
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
+
+        // Создание кластера маркеров
+        const markers = L.markerClusterGroup();
 
         // Функции для определения стиля маркера
         function getMarkerColor(free, total) {
@@ -58,6 +75,86 @@
             ));
         }
 
+        // Функция для отображения данных на карте
+        function displayData(data) {
+            // Очистка старых маркеров
+            markers.clearLayers();
+
+            // Создание новых маркеров
+            data.forEach(row => {
+                const lat = row['Широта'];
+                const lng = row['Долгота'];
+                const station = row['Станция'];
+                const free = row['Свободные вагоны'];
+                const total = row['Всего вагонов'];
+
+                if (lat && lng && free !== undefined && total !== undefined) {
+                    const iconSize = getMarkerSize(total);
+                    const icon = L.divIcon({
+                        className: 'custom-marker',
+                        iconSize: [iconSize, iconSize],
+                        html: `
+                            <div class="marker-circle" 
+                                style="
+                                    width: ${iconSize}px;
+                                    height: ${iconSize}px;
+                                    background: ${getMarkerColor(free, total)};
+                                    font-size: ${iconSize * 0.4}px;
+                                ">
+                                ${free}/${total}
+                            </div>
+                        `
+                    });
+
+                    const marker = L.marker([lat, lng], { icon })
+                        .bindPopup(`
+                            <b>${station}</b><br>
+                            Свободно: ${free} из ${total} вагонов<br>
+                            Обстановленные: ${total - free} вагонов<br>
+                            Обновлено: 12.02.25
+                        `);
+
+                    markers.addLayer(marker);
+                }
+            });
+
+            map.addLayer(markers);
+        }
+
+        // Проверка авторизации
+        function checkAuth() {
+            const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+            if (isLoggedIn) {
+                document.getElementById('excelFile').classList.remove('hidden');
+                document.getElementById('logoutBtn').classList.remove('hidden');
+                document.getElementById('loginBtn').classList.add('hidden');
+            } else {
+                document.getElementById('excelFile').classList.add('hidden');
+                document.getElementById('logoutBtn').classList.add('hidden');
+                document.getElementById('loginBtn').classList.remove('hidden');
+            }
+        }
+
+        // Обработчик входа
+        document.getElementById('loginBtn').addEventListener('click', () => {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            // Простая проверка (для примера)
+            if (username === 'admin' && password === 'admin') {
+                localStorage.setItem('isLoggedIn', 'true');
+                checkAuth();
+            } else {
+                alert('Неверный логин или пароль');
+            }
+        });
+
+        // Обработчик выхода
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.setItem('isLoggedIn', 'false');
+            checkAuth();
+        });
+
         // Обработчик загрузки файла
         document.getElementById('excelFile').addEventListener('change', function(e) {
             const file = e.target.files[0];
@@ -70,51 +167,21 @@
                 const sheet = workbook.Sheets[workbook.SheetNames[0]];
                 const jsonData = XLSX.utils.sheet_to_json(sheet);
 
-                console.log(jsonData); // Вывод данных в консоль
-
-                // Очистка старых маркеров
-                map.eachLayer(layer => {
-                    if (layer instanceof L.Marker) map.removeLayer(layer);
-                });
-
-                // Создание новых маркеров
-                jsonData.forEach(row => {
-                    const lat = row['Широта'];
-                    const lng = row['Долгота'];
-                    const station = row['Станция'];
-                    const free = row['Свободные вагоны'];
-                    const total = row['Всего вагонов'];
-
-                    if (lat && lng && free !== undefined && total !== undefined) {
-                        const iconSize = getMarkerSize(total);
-                        const icon = L.divIcon({
-                            className: 'custom-marker',
-                            iconSize: [iconSize, iconSize],
-                            html: `
-                                <div class="marker-circle" 
-                                    style="
-                                        width: ${iconSize}px;
-                                        height: ${iconSize}px;
-                                        background: ${getMarkerColor(free, total)};
-                                        font-size: ${iconSize * 0.4}px;
-                                    ">
-                                    ${free}/${total}
-                                </div>
-                            `
-                        });
-
-                        const marker = L.marker([lat, lng], { icon })
-                            .bindPopup(`
-                                <b>${station}</b><br>
-                                Свободно: ${free} из ${total} вагонов<br>
-                                Обновлено: 12.02.25
-                            `)
-                            .addTo(map);
-                    }
-                });
+                // Сохранение данных в localStorage
+                localStorage.setItem('mapData', JSON.stringify(jsonData));
+                displayData(jsonData);
             };
             reader.readAsArrayBuffer(file);
         });
+
+        // Загрузка данных при открытии страницы
+        const savedData = localStorage.getItem('mapData');
+        if (savedData) {
+            displayData(JSON.parse(savedData));
+        }
+
+        // Проверка авторизации при загрузке страницы
+        checkAuth();
     </script>
 </body>
 </html>
