@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
+    <script src="https://cdn.jsdelivr.net/npm/lz-string@1.4.4/libs/lz-string.min.js"></script>
     <style>
         #map {
             height: 800px;
@@ -120,14 +121,19 @@
             map.addLayer(markers);
         }
 
-        // Кодирование данных в base64
-        function encodeData(data) {
-            return btoa(encodeURIComponent(JSON.stringify(data)));
+        // Сжатие данных
+        function compressData(data) {
+            return LZString.compressToEncodedURIComponent(JSON.stringify(data));
         }
 
-        // Декодирование данных из base64
-        function decodeData(encodedData) {
-            return JSON.parse(decodeURIComponent(atob(encodedData)));
+        // Декомпрессия данных
+        function decompressData(compressed) {
+            try {
+                return JSON.parse(LZString.decompressFromEncodedURIComponent(compressed));
+            } catch (e) {
+                alert('Ошибка декомпрессии данных: ' + e.message);
+                return null;
+            }
         }
 
         // Проверка авторизации
@@ -180,31 +186,28 @@
         });
 
         // Обработчик кнопки "Поделиться данными"
-        document.getElementById('shareDataBtn').addEventListener('click', () => {
+        document.getElementById('shareDataBtn').addEventListener('click', async () => {
             const rawData = localStorage.getItem('mapData');
             if (!rawData) return alert('Нет данных для分享');
 
             try {
-                const encodedData = encodeData(rawData);
-                const shareUrl = `${window.location.href.split('?')[0]}?data=${encodedData}`;
+                const jsonData = JSON.parse(rawData);
+                const compressed = compressData(jsonData);
+                const shareUrl = `${window.location.href.split('?')[0]}?d=${compressed}`;
 
                 // Копирование в буфер обмена
-                const copyToClipboard = async (text) => {
-                    try {
-                        await navigator.clipboard.writeText(text);
-                        alert('Ссылка скопирована:\n' + text);
-                    } catch (err) {
-                        const textarea = document.createElement('textarea');
-                        textarea.value = text;
-                        document.body.appendChild(textarea);
-                        textarea.select();
-                        document.execCommand('copy');
-                        document.body.removeChild(textarea);
-                        alert('Ссылка скопирована вручную:\n' + text);
-                    }
-                };
-
-                copyToClipboard(shareUrl);
+                try {
+                    await navigator.clipboard.writeText(shareUrl);
+                    alert('Сокращенная ссылка скопирована:\n' + shareUrl);
+                } catch (err) {
+                    const textarea = document.createElement('textarea');
+                    textarea.value = shareUrl;
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textarea);
+                    alert('Ссылка скопирована вручную:\n' + shareUrl);
+                }
             } catch (e) {
                 alert('Ошибка генерации ссылки: ' + e.message);
             }
@@ -212,15 +215,13 @@
 
         // Загрузка данных из URL
         const urlParams = new URLSearchParams(window.location.search);
-        const sharedData = urlParams.get('data');
-        if (sharedData) {
-            try {
-                const decodedData = decodeData(sharedData);
-                displayData(JSON.parse(decodedData));
+        const compressedData = urlParams.get('d');
+        if (compressedData) {
+            const jsonData = decompressData(compressedData);
+            if (jsonData) {
+                displayData(jsonData);
                 document.querySelectorAll('.auth-section, #excelFile, #saveDataBtn, #shareDataBtn')
-                       .forEach(el => el.classList.add('hidden'));
-            } catch (e) {
-                alert('Ошибка загрузки данных: ' + e.message);
+                    .forEach(el => el.classList.add('hidden'));
             }
         } else if (localStorage.getItem('mapData')) {
             displayData(JSON.parse(localStorage.getItem('mapData')));
