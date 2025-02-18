@@ -20,7 +20,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            color: black; /* Черный цвет текста */
+            color: black;
             font-weight: bold;
             font-family: Arial;
             box-shadow: 0 2px 5px rgba(0,0,0,0.3);
@@ -62,14 +62,14 @@
         // Функции для определения стиля маркера
         function getMarkerColor(free, total) {
             const percentage = (free / total) * 100;
-            if (percentage === 0) return '#ff4444';    // Красный
+            if (percentage === 0) return '#ff4444'; // Красный
             if (percentage === 100) return '#00c851'; // Зеленый
-            return '#ffbb33';                         // Желтый
+            return '#ffbb33'; // Желтый
         }
 
         function getMarkerSize(total) {
-            const minSize = 40; // Увеличен минимальный размер
-            const maxSize = 70; // Увеличен максимальный размер
+            const minSize = 40;
+            const maxSize = 70;
             const minWagons = 10;
             const maxWagons = 100;
             return Math.min(maxSize, Math.max(minSize, 
@@ -122,6 +122,16 @@
             });
 
             map.addLayer(markers);
+        }
+
+        // Функция для кодирования данных в base64
+        function encodeData(data) {
+            return btoa(JSON.stringify(data));
+        }
+
+        // Функция для декодирования данных из base64
+        function decodeData(encodedData) {
+            return JSON.parse(atob(encodedData));
         }
 
         // Проверка авторизации
@@ -207,9 +217,13 @@
         document.getElementById('shareDataBtn').addEventListener('click', () => {
             const data = localStorage.getItem('mapData');
             if (data) {
-                const encodedData = encodeURIComponent(data);
+                const encodedData = encodeData(data);
                 const shareUrl = `${window.location.origin}${window.location.pathname}?data=${encodedData}`;
                 alert(`Ссылка для分享 данных: ${shareUrl}`);
+                // Автоматическое копирование в буфер обмена
+                navigator.clipboard.writeText(shareUrl)
+                    .then(() => alert('Ссылка скопирована в буфер обмена!'))
+                    .catch(() => alert('Не удалось скопировать ссылку.'));
             } else {
                 alert('Нет данных для分享.');
             }
@@ -219,14 +233,18 @@
         const urlParams = new URLSearchParams(window.location.search);
         const sharedData = urlParams.get('data');
         if (sharedData) {
-            const decodedData = JSON.parse(decodeURIComponent(sharedData));
-            displayData(decodedData);
+            try {
+                const decodedData = decodeData(sharedData);
+                displayData(decodedData);
 
-            // Скрываем элементы управления для пользователей, открывших ссылку
-            document.getElementById('auth-section').classList.add('hidden');
-            document.getElementById('excelFile').classList.add('hidden');
-            document.getElementById('saveDataBtn').classList.add('hidden');
-            document.getElementById('shareDataBtn').classList.add('hidden');
+                // Скрываем элементы управления для пользователей, открывших ссылку
+                document.getElementById('auth-section').classList.add('hidden');
+                document.getElementById('excelFile').classList.add('hidden');
+                document.getElementById('saveDataBtn').classList.add('hidden');
+                document.getElementById('shareDataBtn').classList.add('hidden');
+            } catch (e) {
+                alert('Ошибка при загрузке данных: неверный формат.');
+            }
         } else {
             // Загрузка данных из localStorage, если нет данных в URL
             const savedData = localStorage.getItem('mapData');
