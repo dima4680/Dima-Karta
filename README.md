@@ -31,6 +31,35 @@
         .hidden {
             display: none;
         }
+        /* Стили для модального окна */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 50%;
+            max-width: 600px;
+            text-align: center;
+        }
+        .modal input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        .modal button {
+            padding: 10px 20px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -45,6 +74,16 @@
     <button id="saveDataBtn" class="hidden">Сохранить данные</button>
     <button id="shareDataBtn" class="hidden">Поделиться данными</button>
     <div id="map"></div>
+
+    <!-- Модальное окно для отображения ссылки -->
+    <div id="shareModal" class="modal">
+        <div class="modal-content">
+            <h3>Ссылка для分享 данных</h3>
+            <input type="text" id="shareUrlInput" readonly>
+            <button id="copyUrlBtn">Копировать ссылку</button>
+            <button id="closeModalBtn">Закрыть</button>
+        </div>
+    </div>
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
@@ -100,7 +139,7 @@
                                 style="
                                     width: ${iconSize}px;
                                     height: ${iconSize}px;
-                                    background: ${getMarkerColor(free, total)};
+                                    background: ${getMarkerColor(ffree, total)};
                                     font-size: ${iconSize * 0.4}px;
                                 ">
                                 ${free}/${total}
@@ -111,7 +150,7 @@
                     const marker = L.marker([lat, lng], { icon })
                         .bindPopup(`
                             <b>${station}</b><br>
-                            Свободно: ${free} из ${total} вагонов<br>
+                            Свободно: ${free} из ${otal} вагонов<br>
                             В отстое: ${total - free} вагонов<br>
                             Контакты для связи: 8(391)259-54-70<br>
                             Обновлено: 12.02.25
@@ -213,55 +252,35 @@
             }
         });
 
-       // Обработчик кнопки "Поделиться данными"
-document.getElementById('shareDataBtn').addEventListener('click', () => {
-    const data = localStorage.getItem('mapData');
-    if (data) {
-        const encodedData = encodeData(data);
-        const shareUrl = `${window.location.origin}${window.location.pathname}?data=${encodedData}`;
+        // Открытие модального окна для分享 ссылки
+        document.getElementById('shareDataBtn').addEventListener('click', () => {
+            const data = localStorage.getItem('mapData');
+            if (data) {
+                const encodedData = encodeData(data);
+                const shareUrl = `${window.location.origin}${window.location.pathname}?data=${encodedData}`;
 
-        // Показываем ссылку в alert
-        alert(`Ссылка для分享 данных: ${shareUrl}`);
+                // Отображение модального окна
+                const modal = document.getElementById('shareModal');
+                const shareUrlInput = document.getElementById('shareUrlInput');
+                shareUrlInput.value = shareUrl;
+                modal.style.display = 'block';
+            } else {
+                alert('Нет данных для分享.');
+            }
+        });
 
-        // Копирование в буфер обмена
-        if (navigator.clipboard) {
-            // Используем Clipboard API, если доступен
-            navigator.clipboard.writeText(shareUrl)
+        // Копирование ссылки в буфер обмена
+        document.getElementById('copyUrlBtn').addEventListener('click', () => {
+            const shareUrlInput = document.getElementById('shareUrlInput');
+            shareUrlInput.select();
+            navigator.clipboard.writeText(shareUrlInput.value)
                 .then(() => alert('Ссылка скопирована в буфер обмена!'))
-                .catch(() => {
-                    // Fallback, если Clipboard API недоступен
-                    copyToClipboardFallback(shareUrl);
-                });
-        } else {
-            // Используем fallback, если Clipboard API недоступен
-            copyToClipboardFallback(shareUrl);
-        }
-    } else {
-        alert('Нет данных для分享.');
-    }
-});
+                .catch(() => alert('Не удалось скопировать ссылку.'));
+        });
 
-// Fallback для копирования в буфер обмена
-function copyToClipboardFallback(text) {
-    const textarea = document.createElement('textarea');
-    textarea.value = text;
-    textarea.style.position = 'fixed'; // Убираем из DOM
-    document.body.appendChild(textarea);
-    textarea.select();
-
-    try {
-        const successful = document.execCommand('copy');
-        if (successful) {
-            alert('Ссылка скопирована в буфер обмена!');
-        } else {
-            alert('Не удалось скопировать ссылку. Скопируйте её вручную.');
-        }
-    } catch (err) {
-        alert('Не удалось скопировать ссылку. Скопируйте её вручную.');
-    } finally {
-        document.body.removeChild(textarea);
-    }
-}
+        // Закрытие модального окна
+        document.getElementById('closeModalBtn').addEventListener('click', () => {
+            document.getElementById('shareModal').style.display = 'none';
         });
 
         // Загрузка данных из URL, если они есть
