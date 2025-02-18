@@ -3,25 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Карта загруженности вагонов</title>
+    <title>Карта загруженности путей необщего пользования на Красноярской железной дороге</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
     <style>
-        #map { height: 800px; }
-        .custom-marker { background: transparent; border: none; }
+        #map {
+            height: 800px;
+        }
+        .custom-marker {
+            background: transparent;
+            border: none;
+        }
         .marker-circle {
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
+            color: black; /* Черный цвет текста */
             font-weight: bold;
             font-family: Arial;
             box-shadow: 0 2px 5px rgba(0,0,0,0.3);
         }
-        .auth-section { margin-bottom: 20px; }
-        .hidden { display: none; }
+        .auth-section {
+            margin-bottom: 20px;
+        }
+        .hidden {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -34,7 +43,6 @@
     <h1>Карта загруженности вагонов</h1>
     <input type="file" id="excelFile" accept=".xlsx, .xls" class="hidden">
     <button id="saveDataBtn" class="hidden">Сохранить данные</button>
-    <button id="shareDataBtn" class="hidden">Поделиться данными</button>
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -59,8 +67,8 @@
         }
 
         function getMarkerSize(total) {
-            const minSize = 30;
-            const maxSize = 50;
+            const minSize = 40; // Увеличен минимальный размер
+            const maxSize = 70; // Увеличен максимальный размер
             const minWagons = 10;
             const maxWagons = 100;
             return Math.min(maxSize, Math.max(minSize, 
@@ -103,7 +111,8 @@
                         .bindPopup(`
                             <b>${station}</b><br>
                             Свободно: ${free} из ${total} вагонов<br>
-                            Обставленные: ${total - free} вагонов<br>
+                            В отстое: ${total - free} вагонов<br>
+                            Контакты для связи: 8(391)259-54-70<br>
                             Обновлено: 12.02.25
                         `);
 
@@ -122,13 +131,11 @@
                 document.getElementById('logoutBtn').classList.remove('hidden');
                 document.getElementById('loginBtn').classList.add('hidden');
                 document.getElementById('saveDataBtn').classList.remove('hidden');
-                document.getElementById('shareDataBtn').classList.remove('hidden');
             } else {
                 document.getElementById('excelFile').classList.add('hidden');
                 document.getElementById('logoutBtn').classList.add('hidden');
                 document.getElementById('loginBtn').classList.remove('hidden');
                 document.getElementById('saveDataBtn').classList.add('hidden');
-                document.getElementById('shareDataBtn').classList.add('hidden');
             }
         }
 
@@ -152,8 +159,14 @@
             checkAuth();
         });
 
-        // Обработчик загрузки файла
+        // Обеспечение загрузки файла только для авторизованных пользователей
         document.getElementById('excelFile').addEventListener('change', function(e) {
+            const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+            if (!isLoggedIn) {
+                alert('Для загрузки файла необходимо войти в систему.');
+                return;
+            }
+
             const file = e.target.files[0];
             if (!file) return;
 
@@ -173,6 +186,12 @@
 
         // Обработчик сохранения данных
         document.getElementById('saveDataBtn').addEventListener('click', () => {
+            const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+            if (!isLoggedIn) {
+                alert('Для сохранения данных необходимо войти в систему.');
+                return;
+            }
+
             const data = localStorage.getItem('mapData');
             if (data) {
                 alert('Данные успешно сохранены!');
@@ -181,36 +200,10 @@
             }
         });
 
-        // Обработчик кнопки "Поделиться данными"
-        document.getElementById('shareDataBtn').addEventListener('click', () => {
-            const data = localStorage.getItem('mapData');
-            if (data) {
-                const encodedData = encodeURIComponent(data);
-                const shareUrl = `${window.location.origin}${window.location.pathname}?data=${encodedData}`;
-                alert(`Ссылка для分享 данных: ${shareUrl}`);
-            } else {
-                alert('Нет данных для分享.');
-            }
-        });
-
-        // Загрузка данных из URL, если они есть
-        const urlParams = new URLSearchParams(window.location.search);
-        const sharedData = urlParams.get('data');
-        if (sharedData) {
-            const decodedData = JSON.parse(decodeURIComponent(sharedData));
-            displayData(decodedData);
-
-            // Скрываем элементы управления для пользователей, открывших ссылку
-            document.getElementById('auth-section').classList.add('hidden');
-            document.getElementById('excelFile').classList.add('hidden');
-            document.getElementById('saveDataBtn').classList.add('hidden');
-            document.getElementById('shareDataBtn').classList.add('hidden');
-        } else {
-            // Загрузка данных из localStorage, если нет данных в URL
-            const savedData = localStorage.getItem('mapData');
-            if (savedData) {
-                displayData(JSON.parse(savedData));
-            }
+        // Загрузка данных при открытии страницы
+        const savedData = localStorage.getItem('mapData');
+        if (savedData) {
+            displayData(JSON.parse(savedData));
         }
 
         // Проверка авторизации при загрузке страницы
