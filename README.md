@@ -42,6 +42,7 @@
     </div>
     <h1>Карта загруженности вагонов</h1>
     <input type="file" id="excelFile" accept=".xlsx, .xls" class="hidden">
+    <button id="saveDataBtn" class="hidden">Сохранить данные</button>
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -110,7 +111,7 @@
                         .bindPopup(`
                             <b>${station}</b><br>
                             Свободно: ${free} из ${total} вагонов<br>
-                            Обстановленные: ${total - free} вагонов<br>
+                            Обставленные: ${total - free} вагонов<br>
                             Обновлено: 12.02.25
                         `);
 
@@ -128,10 +129,12 @@
                 document.getElementById('excelFile').classList.remove('hidden');
                 document.getElementById('logoutBtn').classList.remove('hidden');
                 document.getElementById('loginBtn').classList.add('hidden');
+                document.getElementById('saveDataBtn').classList.remove('hidden');
             } else {
                 document.getElementById('excelFile').classList.add('hidden');
                 document.getElementById('logoutBtn').classList.add('hidden');
                 document.getElementById('loginBtn').classList.remove('hidden');
+                document.getElementById('saveDataBtn').classList.add('hidden');
             }
         }
 
@@ -172,6 +175,16 @@
                 displayData(jsonData);
             };
             reader.readAsArrayBuffer(file);
+        });
+
+        // Обработчик сохранения данных
+        document.getElementById('saveDataBtn').addEventListener('click', () => {
+            const data = localStorage.getItem('mapData');
+            if (data) {
+                alert('Данные успешно сохранены!');
+            } else {
+                alert('Нет данных для сохранения.');
+            }
         });
 
         // Загрузка данных при открытии страницы
