@@ -3,18 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Карта загруженности вагонов</title>
+    <title>Карта загруженности Путей необщего пользования Красноярской железной дороги</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
     <style>
-        #map {
-            height: 800px;
-        }
-        .custom-marker {
-            background: transparent;
-            border: none;
-        }
+        #map { height: 800px; }
+        .custom-marker { background: transparent; border: none; }
         .marker-circle {
             border-radius: 50%;
             display: flex;
@@ -25,12 +20,8 @@
             font-family: Arial;
             box-shadow: 0 2px 5px rgba(0,0,0,0.3);
         }
-        .auth-section {
-            margin-bottom: 20px;
-        }
-        .hidden {
-            display: none;
-        }
+        .auth-section { margin-bottom: 20px; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
@@ -43,6 +34,7 @@
     <h1>Карта загруженности вагонов</h1>
     <input type="file" id="excelFile" accept=".xlsx, .xls" class="hidden">
     <button id="saveDataBtn" class="hidden">Сохранить данные</button>
+    <button id="shareDataBtn" class="hidden">Поделиться данными</button>
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -130,11 +122,13 @@
                 document.getElementById('logoutBtn').classList.remove('hidden');
                 document.getElementById('loginBtn').classList.add('hidden');
                 document.getElementById('saveDataBtn').classList.remove('hidden');
+                document.getElementById('shareDataBtn').classList.remove('hidden');
             } else {
                 document.getElementById('excelFile').classList.add('hidden');
                 document.getElementById('logoutBtn').classList.add('hidden');
                 document.getElementById('loginBtn').classList.remove('hidden');
                 document.getElementById('saveDataBtn').classList.add('hidden');
+                document.getElementById('shareDataBtn').classList.add('hidden');
             }
         }
 
@@ -184,6 +178,18 @@
                 alert('Данные успешно сохранены!');
             } else {
                 alert('Нет данных для сохранения.');
+            }
+        });
+
+        // Обработчик кнопки "Поделиться данными"
+        document.getElementById('shareDataBtn').addEventListener('click', () => {
+            const data = localStorage.getItem('mapData');
+            if (data) {
+                const encodedData = encodeURIComponent(data);
+                const shareUrl = `${window.location.origin}${window.location.pathname}?data=${encodedData}`;
+                alert(`Ссылка для分享 данных: ${shareUrl}`);
+            } else {
+                alert('Нет данных для分享.');
             }
         });
 
