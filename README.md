@@ -62,9 +62,9 @@
         // Функции для определения стиля маркера
         function getMarkerColor(free, total) {
             const percentage = (free / total) * 100;
-            if (percentage === 0) return '#ff4444'; // Красный
-            if (percentage === 100) return '#00c851'; // Зеленый
-            return '#ffbb33'; // Желтый
+            if (percentage === 0) return '#ff4444';
+            if (percentage === 100) return '#00c851';
+            return '#ffbb33';
         }
 
         function getMarkerSize(total) {
@@ -79,10 +79,7 @@
 
         // Функция для отображения данных на карте
         function displayData(data) {
-            // Очистка старых маркеров
             markers.clearLayers();
-
-            // Создание новых маркеров
             data.forEach(row => {
                 const lat = row['Широта'];
                 const lng = row['Долгота'];
@@ -120,44 +117,32 @@
                     markers.addLayer(marker);
                 }
             });
-
             map.addLayer(markers);
         }
 
-        // Функция для кодирования данных в base64
+        // Работа с данными
         function encodeData(data) {
-            return btoa(JSON.stringify(data));
+            return btoa(unescape(encodeURIComponent(data)));
         }
 
-        // Функция для декодирования данных из base64
         function decodeData(encodedData) {
-            return JSON.parse(atob(encodedData));
+            return decodeURIComponent(escape(atob(encodedData)));
         }
 
-        // Проверка авторизации
+        // Авторизация
         function checkAuth() {
             const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-            if (isLoggedIn) {
-                document.getElementById('excelFile').classList.remove('hidden');
-                document.getElementById('logoutBtn').classList.remove('hidden');
-                document.getElementById('loginBtn').classList.add('hidden');
-                document.getElementById('saveDataBtn').classList.remove('hidden');
-                document.getElementById('shareDataBtn').classList.remove('hidden'); // Исправлено: кнопка "Поделиться данными" теперь видна
-            } else {
-                document.getElementById('excelFile').classList.add('hidden');
-                document.getElementById('logoutBtn').classList.add('hidden');
-                document.getElementById('loginBtn').classList.remove('hidden');
-                document.getElementById('saveDataBtn').classList.add('hidden');
-                document.getElementById('shareDataBtn').classList.add('hidden');
-            }
+            document.getElementById('excelFile').classList.toggle('hidden', !isLoggedIn);
+            document.getElementById('logoutBtn').classList.toggle('hidden', !isLoggedIn);
+            document.getElementById('loginBtn').classList.toggle('hidden', isLoggedIn);
+            document.getElementById('saveDataBtn').classList.toggle('hidden', !isLoggedIn);
+            document.getElementById('shareDataBtn').classList.toggle('hidden', !isLoggedIn);
         }
 
-        // Обработчик входа
+        // Обработчики событий
         document.getElementById('loginBtn').addEventListener('click', () => {
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
-
-            // Простая проверка (для примера)
             if (username === 'admin' && password === 'admin') {
                 localStorage.setItem('isLoggedIn', 'true');
                 checkAuth();
@@ -166,20 +151,12 @@
             }
         });
 
-        // Обработчик выхода
         document.getElementById('logoutBtn').addEventListener('click', () => {
             localStorage.setItem('isLoggedIn', 'false');
             checkAuth();
         });
 
-        // Обработчик загрузки файла
         document.getElementById('excelFile').addEventListener('change', function(e) {
-            const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-            if (!isLoggedIn) {
-                alert('Для загрузки файла необходимо войти в систему.');
-                return;
-            }
-
             const file = e.target.files[0];
             if (!file) return;
 
@@ -187,101 +164,63 @@
             reader.onload = function(e) {
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, { type: 'array' });
-                const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                const jsonData = XLSX.utils.sheet_to_json(sheet);
-
-                // Сохранение данных в localStorage
+                const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
                 localStorage.setItem('mapData', JSON.stringify(jsonData));
                 displayData(jsonData);
             };
             reader.readAsArrayBuffer(file);
         });
 
-        // Обработчик сохранения данных
         document.getElementById('saveDataBtn').addEventListener('click', () => {
-            const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-            if (!isLoggedIn) {
-                alert('Для сохранения данных необходимо войти в систему.');
-                return;
-            }
-
-            const data = localStorage.getItem('mapData');
-            if (data) {
-                alert('Данные успешно сохранены!');
-            } else {
-                alert('Нет данных для сохранения.');
-            }
+            alert(localStorage.getItem('mapData') ? 'Данные сохранены!' : 'Нет данных');
         });
 
-        // Обработчик кнопки "Поделиться данными"
+        // Исправленная функция для поделиться данными
         document.getElementById('shareDataBtn').addEventListener('click', () => {
-            const data = localStorage.getItem('mapData');
-            if (data) {
-                const encodedData = encodeData(data);
-                const shareUrl = `${window.location.origin}${window.location.pathname}?data=${encodedData}`;
-                alert(`Ссылка для分享 данных: ${shareUrl}`);
-                // Автоматическое копирование в буфер обмена
-                if (navigator.clipboard) {
-                    navigator.clipboard.writeText(shareUrl)
-                        .then(() => alert('Ссылка скопирована в буфер обмена!'))
-                        .catch(() => {
-                            // Альтернативный способ копирования, если navigator.clipboard не работает
-                            const textArea = document.createElement('textarea');
-                            textArea.value = shareUrl;
-                            document.body.appendChild(textArea);
-                            textArea.select();
-                            try {
-                                document.execCommand('copy');
-                                alert('Ссылка скопирована в буфер обмена!');
-                            } catch (err) {
-                                alert('Не удалось скопировать ссылку.');
-                            }
-                            document.body.removeChild(textArea);
-                        });
-                } else {
-                    // Альтернативный способ копирования, если navigator.clipboard не поддерживается
-                    const textArea = document.createElement('textarea');
-                    textArea.value = shareUrl;
-                    document.body.appendChild(textArea);
-                    textArea.select();
+            const rawData = localStorage.getItem('mapData');
+            if (!rawData) return alert('Нет данных для分享');
+
+            try {
+                const encodedData = encodeData(rawData);
+                const shareUrl = `${window.location.href.split('?')[0]}?data=${encodedData}`;
+                
+                const copyToClipboard = async (text) => {
                     try {
-                        document.execCommand('copy');
-                        alert('Ссылка скопирована в буфер обмена!');
+                        await navigator.clipboard.writeText(text);
+                        alert('Ссылка скопирована:\n' + text);
                     } catch (err) {
-                        alert('Не удалось скопировать ссылку.');
+                        const textarea = document.createElement('textarea');
+                        textarea.value = text;
+                        document.body.appendChild(textarea);
+                        textarea.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(textarea);
+                        alert('Ссылка скопирована вручную:\n' + text);
                     }
-                    document.body.removeChild(textArea);
-                }
-            } else {
-                alert('Нет данных для分享.');
+                };
+
+                copyToClipboard(shareUrl);
+            } catch (e) {
+                alert('Ошибка генерации ссылки: ' + e.message);
             }
         });
 
-        // Загрузка данных из URL, если они есть
+        // Инициализация
         const urlParams = new URLSearchParams(window.location.search);
         const sharedData = urlParams.get('data');
         if (sharedData) {
             try {
-                const decodedData = decodeData(sharedData);
-                displayData(decodedData);
-
-                // Скрываем элементы управления для пользователей, открывших ссылку
-                document.getElementById('auth-section').classList.add('hidden');
-                document.getElementById('excelFile').classList.add('hidden');
-                document.getElementById('saveDataBtn').classList.add('hidden');
-                document.getElementById('shareDataBtn').classList.add('hidden');
+                const decoded = decodeData(sharedData);
+                displayData(JSON.parse(decoded));
+                document.querySelectorAll('.auth-section, #excelFile, #saveDataBtn, #shareDataBtn')
+                       .forEach(el => el.classList.add('hidden'));
             } catch (e) {
-                alert('Ошибка при загрузке данных: неверный формат.');
+                alert('Ошибка загрузки данных: ' + e.message);
             }
-        } else {
-            // Загрузка данных из localStorage, если нет данных в URL
-            const savedData = localStorage.getItem('mapData');
-            if (savedData) {
-                displayData(JSON.parse(savedData));
-            }
+        } else if (localStorage.getItem('mapData')) {
+            displayData(JSON.parse(localStorage.getItem('mapData')));
         }
 
-        // Проверка авторизации при загрузке страницы
         checkAuth();
     </script>
 </body>
