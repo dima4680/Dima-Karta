@@ -43,6 +43,7 @@
     <h1>Карта загруженности вагонов</h1>
     <input type="file" id="excelFile" accept=".xlsx, .xls" class="hidden">
     <button id="saveDataBtn" class="hidden">Сохранить данные</button>
+    <button id="shareDataBtn" class="hidden">Поделиться данными</button>
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -131,11 +132,13 @@
                 document.getElementById('logoutBtn').classList.remove('hidden');
                 document.getElementById('loginBtn').classList.add('hidden');
                 document.getElementById('saveDataBtn').classList.remove('hidden');
+                document.getElementById('shareDataBtn').classList.remove('hidden');
             } else {
                 document.getElementById('excelFile').classList.add('hidden');
                 document.getElementById('logoutBtn').classList.add('hidden');
                 document.getElementById('loginBtn').classList.remove('hidden');
                 document.getElementById('saveDataBtn').classList.add('hidden');
+                document.getElementById('shareDataBtn').classList.add('hidden');
             }
         }
 
@@ -159,7 +162,7 @@
             checkAuth();
         });
 
-        // Обеспечение загрузки файла только для авторизованных пользователей
+        // Обработчик загрузки файла
         document.getElementById('excelFile').addEventListener('change', function(e) {
             const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
             if (!isLoggedIn) {
@@ -200,10 +203,36 @@
             }
         });
 
-        // Загрузка данных при открытии страницы
-        const savedData = localStorage.getItem('mapData');
-        if (savedData) {
-            displayData(JSON.parse(savedData));
+        // Обработчик кнопки "Поделиться данными"
+        document.getElementById('shareDataBtn').addEventListener('click', () => {
+            const data = localStorage.getItem('mapData');
+            if (data) {
+                const encodedData = encodeURIComponent(data);
+                const shareUrl = `${window.location.origin}${window.location.pathname}?data=${encodedData}`;
+                alert(`Ссылка для分享 данных: ${shareUrl}`);
+            } else {
+                alert('Нет данных для分享.');
+            }
+        });
+
+        // Загрузка данных из URL, если они есть
+        const urlParams = new URLSearchParams(window.location.search);
+        const sharedData = urlParams.get('data');
+        if (sharedData) {
+            const decodedData = JSON.parse(decodeURIComponent(sharedData));
+            displayData(decodedData);
+
+            // Скрываем элементы управления для пользователей, открывших ссылку
+            document.getElementById('auth-section').classList.add('hidden');
+            document.getElementById('excelFile').classList.add('hidden');
+            document.getElementById('saveDataBtn').classList.add('hidden');
+            document.getElementById('shareDataBtn').classList.add('hidden');
+        } else {
+            // Загрузка данных из localStorage, если нет данных в URL
+            const savedData = localStorage.getItem('mapData');
+            if (savedData) {
+                displayData(JSON.parse(savedData));
+            }
         }
 
         // Проверка авторизации при загрузке страницы
