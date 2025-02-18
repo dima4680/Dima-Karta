@@ -44,19 +44,18 @@
         function getMarkerColor(free, total) {
             const percentage = (free / total) * 100;
             if (percentage === 0) return '#ff4444';    // Красный
-            if (percentage === 100) return '#00c851';  // Зеленый
-            return '#ffbb33';                          // Желтый
+            if (percentage === 100) return '#00c851'; // Зеленый
+            return '#ffbb33';                         // Желтый
         }
 
         function getMarkerSize(total) {
-            // Размер от 30px до 50px в зависимости от общей вместимости
             const minSize = 30;
             const maxSize = 50;
             const minWagons = 10;
             const maxWagons = 100;
             return Math.min(maxSize, Math.max(minSize, 
                 ((total - minWagons) / (maxWagons - minWagons)) * (maxSize - minSize) + minSize
-            );
+            ));
         }
 
         // Обработчик загрузки файла
@@ -70,6 +69,8 @@
                 const workbook = XLSX.read(data, { type: 'array' });
                 const sheet = workbook.Sheets[workbook.SheetNames[0]];
                 const jsonData = XLSX.utils.sheet_to_json(sheet);
+
+                console.log(jsonData); // Вывод данных в консоль
 
                 // Очистка старых маркеров
                 map.eachLayer(layer => {
@@ -85,7 +86,6 @@
                     const total = row['Всего вагонов'];
 
                     if (lat && lng && free !== undefined && total !== undefined) {
-                        // Создание кастомной иконки
                         const iconSize = getMarkerSize(total);
                         const icon = L.divIcon({
                             className: 'custom-marker',
@@ -103,7 +103,6 @@
                             `
                         });
 
-                        // Добавление маркера на карту
                         const marker = L.marker([lat, lng], { icon })
                             .bindPopup(`
                                 <b>${station}</b><br>
