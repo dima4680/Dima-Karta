@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Карта загруженности Путей необщего пользования Красноярской железной дороги</title>
+    <title>Карта загруженности вагонов</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
@@ -193,10 +193,24 @@
             }
         });
 
-        // Загрузка данных при открытии страницы
-        const savedData = localStorage.getItem('mapData');
-        if (savedData) {
-            displayData(JSON.parse(savedData));
+        // Загрузка данных из URL, если они есть
+        const urlParams = new URLSearchParams(window.location.search);
+        const sharedData = urlParams.get('data');
+        if (sharedData) {
+            const decodedData = JSON.parse(decodeURIComponent(sharedData));
+            displayData(decodedData);
+
+            // Скрываем элементы управления для пользователей, открывших ссылку
+            document.getElementById('auth-section').classList.add('hidden');
+            document.getElementById('excelFile').classList.add('hidden');
+            document.getElementById('saveDataBtn').classList.add('hidden');
+            document.getElementById('shareDataBtn').classList.add('hidden');
+        } else {
+            // Загрузка данных из localStorage, если нет данных в URL
+            const savedData = localStorage.getItem('mapData');
+            if (savedData) {
+                displayData(JSON.parse(savedData));
+            }
         }
 
         // Проверка авторизации при загрузке страницы
