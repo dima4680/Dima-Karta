@@ -120,16 +120,17 @@
             map.addLayer(markers);
         }
 
-        // Работа с данными
+        // Кодирование данных в base64
         function encodeData(data) {
-            return btoa(unescape(encodeURIComponent(data)));
+            return btoa(encodeURIComponent(JSON.stringify(data)));
         }
 
+        // Декодирование данных из base64
         function decodeData(encodedData) {
-            return decodeURIComponent(escape(atob(encodedData)));
+            return JSON.parse(decodeURIComponent(atob(encodedData)));
         }
 
-        // Авторизация
+        // Проверка авторизации
         function checkAuth() {
             const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
             document.getElementById('excelFile').classList.toggle('hidden', !isLoggedIn);
@@ -139,7 +140,7 @@
             document.getElementById('shareDataBtn').classList.toggle('hidden', !isLoggedIn);
         }
 
-        // Обработчики событий
+        // Обработчик входа
         document.getElementById('loginBtn').addEventListener('click', () => {
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
@@ -151,11 +152,13 @@
             }
         });
 
+        // Обработчик выхода
         document.getElementById('logoutBtn').addEventListener('click', () => {
             localStorage.setItem('isLoggedIn', 'false');
             checkAuth();
         });
 
+        // Обработчик загрузки файла
         document.getElementById('excelFile').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -171,11 +174,12 @@
             reader.readAsArrayBuffer(file);
         });
 
+        // Обработчик сохранения данных
         document.getElementById('saveDataBtn').addEventListener('click', () => {
             alert(localStorage.getItem('mapData') ? 'Данные сохранены!' : 'Нет данных');
         });
 
-        // Исправленная функция для поделиться данными
+        // Обработчик кнопки "Поделиться данными"
         document.getElementById('shareDataBtn').addEventListener('click', () => {
             const rawData = localStorage.getItem('mapData');
             if (!rawData) return alert('Нет данных для分享');
@@ -183,7 +187,8 @@
             try {
                 const encodedData = encodeData(rawData);
                 const shareUrl = `${window.location.href.split('?')[0]}?data=${encodedData}`;
-                
+
+                // Копирование в буфер обмена
                 const copyToClipboard = async (text) => {
                     try {
                         await navigator.clipboard.writeText(text);
@@ -205,13 +210,13 @@
             }
         });
 
-        // Инициализация
+        // Загрузка данных из URL
         const urlParams = new URLSearchParams(window.location.search);
         const sharedData = urlParams.get('data');
         if (sharedData) {
             try {
-                const decoded = decodeData(sharedData);
-                displayData(JSON.parse(decoded));
+                const decodedData = decodeData(sharedData);
+                displayData(JSON.parse(decodedData));
                 document.querySelectorAll('.auth-section, #excelFile, #saveDataBtn, #shareDataBtn')
                        .forEach(el => el.classList.add('hidden'));
             } catch (e) {
@@ -221,6 +226,7 @@
             displayData(JSON.parse(localStorage.getItem('mapData')));
         }
 
+        // Проверка авторизации при загрузке страницы
         checkAuth();
     </script>
 </body>
