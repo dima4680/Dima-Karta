@@ -142,7 +142,7 @@
                 document.getElementById('logoutBtn').classList.remove('hidden');
                 document.getElementById('loginBtn').classList.add('hidden');
                 document.getElementById('saveDataBtn').classList.remove('hidden');
-                document.getElementById('shareDataBtn').classList.remove('hidden');
+                document.getElementById('shareDataBtn').classList.remove('hidden'); // Исправлено: кнопка "Поделиться данными" теперь видна
             } else {
                 document.getElementById('excelFile').classList.add('hidden');
                 document.getElementById('logoutBtn').classList.add('hidden');
